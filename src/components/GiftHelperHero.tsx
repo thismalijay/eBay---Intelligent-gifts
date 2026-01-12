@@ -15,7 +15,7 @@ const GiftHelperHero = () => {
         <div className="md:w-1/2 flex items-center justify-center p-8">
           {/* Placeholder for illustration/photo */}
           <img
-            src="/placeholder.svg" // Using a placeholder image
+            src="/freestocks-PxM8aeJbzvk-unsplash.jpg" // Using a placeholder image
             alt="People exchanging gifts"
             className="max-h-64 w-full object-cover rounded-md"
           />
