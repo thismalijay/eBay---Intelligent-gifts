@@ -8,8 +8,11 @@ export const GiftAssistantSchema = z.object({
   interests: z.array(z.string()).optional(), // Optional, hint if none selected
   interestFreeText: z.string().optional(),
   budgetMin: z.number().min(5, "Budget minimum must be at least 5."),
-  budgetMax: z.number().min(5, "Budget maximum must be at least 5.").refine((max, { parent }) => max >= parent.budgetMin, "Budget maximum must be greater than or equal to minimum."),
+  budgetMax: z.number().min(5, "Budget maximum must be at least 5."),
   giftTone: z.string().min(1, "Please select a gift style."),
+}).refine((data) => data.budgetMax >= data.budgetMin, {
+  message: "Budget maximum must be greater than or equal to minimum.",
+  path: ["budgetMax"], // This specifies which field the error should be associated with
 });
 
 export type GiftAssistantFormData = z.infer<typeof GiftAssistantSchema>;
