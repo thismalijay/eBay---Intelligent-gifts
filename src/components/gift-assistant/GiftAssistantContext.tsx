@@ -19,30 +19,27 @@ interface GiftAssistantContextType {
 const GiftAssistantContext = createContext<GiftAssistantContextType | undefined>(undefined);
 
 export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => {
+  const totalSteps = 4; // "Who is it for?", "What do they like?", "Budget & style", "Review & confirm"
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const totalSteps = 5; // Occasion, About them, Interests, Budget & style, Review
 
   const formData = useForm<GiftAssistantFormData>({
     resolver: zodResolver(GiftAssistantSchema),
     defaultValues: {
-      occasion: "Secret Santa at work", // Preselected as per prompt
+      occasion: "Secret Santa at work", // Default as per prompt
       occasionText: "",
-      relationship: "",
-      gender: "I'm not sure / Doesn't matter", // Default to neutral
-      ageRange: "",
-      personality: [],
+      relationship: "Teammate", // Default
+      ageRange: "25–34", // Default
       interests: [],
       interestFreeText: "",
       budgetMin: 10, // Default budget range
       budgetMax: 20,
-      giftTone: "",
-      allowPersonalization: false,
+      giftTone: "Safe & neutral", // Default
     },
   });
 
   const goToNextStep = () => {
-    if (currentStep < totalSteps) {
+    if (currentStep < totalSteps + 1) { // Allow going to results step (totalSteps + 1)
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -54,7 +51,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   };
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= totalSteps) {
+    if (step >= 1 && step <= totalSteps + 1) {
       setCurrentStep(step);
     }
   };

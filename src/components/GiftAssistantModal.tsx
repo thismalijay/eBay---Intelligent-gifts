@@ -4,25 +4,20 @@ import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GiftAssistantProvider, useGiftAssistant } from "./gift-assistant/GiftAssistantContext";
-import StepOccasion from "./gift-assistant/StepOccasion";
+import StepAboutPerson from "./gift-assistant/StepAboutPerson";
+import StepInterests from "./gift-assistant/StepInterests";
+import StepBudgetStyle from "./gift-assistant/StepBudgetStyle";
+import StepReview from "./gift-assistant/StepReview";
+import StepRecommendations from "./gift-assistant/StepRecommendations";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
-// Placeholder for other steps
-const StepAboutPerson = () => <div className="p-4 text-center">Step 2: About the person (Coming Soon!)</div>;
-const StepInterests = () => <div className="p-4 text-center">Step 3: Interests (Coming Soon!)</div>;
-const StepBudgetStyle = () => <div className="p-4 text-center">Step 4: Budget & Style (Coming Soon!)</div>;
-const StepReview = () => <div className="p-4 text-center">Step 5: Review (Coming Soon!)</div>;
-const StepResults = () => <div className="p-4 text-center">Step 6: AI Results (Coming Soon!)</div>;
-
-
 const steps = [
-  { id: 1, name: "Occasion", component: StepOccasion },
-  { id: 2, name: "About them", component: StepAboutPerson },
-  { id: 3, name: "Interests", component: StepInterests },
-  { id: 4, name: "Budget & style", component: StepBudgetStyle },
-  { id: 5, name: "Review", component: StepReview },
-  { id: 6, name: "Results", component: StepResults }, // This is the final results step
+  { id: 1, name: "Who is it for?", component: StepAboutPerson },
+  { id: 2, name: "What do they like?", component: StepInterests },
+  { id: 3, name: "Budget & style", component: StepBudgetStyle },
+  { id: 4, name: "Review & confirm", component: StepReview },
+  { id: 5, name: "Recommendations", component: StepRecommendations }, // This is the final results step
 ];
 
 const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
@@ -32,21 +27,23 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
   const handleNext = async () => {
     let isValid = false;
     if (currentStep === 1) {
-      isValid = await trigger("occasion");
+      isValid = await trigger(["occasion", "relationship", "ageRange"]);
       if (getValues("occasion") === "Other") {
         isValid = isValid && await trigger("occasionText");
       }
+    } else if (currentStep === 2) {
+      // Interests are optional, no strict validation needed for 'Next'
+      isValid = true;
+    } else if (currentStep === 3) {
+      isValid = await trigger(["budgetMin", "budgetMax", "giftTone"]);
+    } else if (currentStep === 4) { // Review step
+      isValid = true; // All previous steps are validated
+      await submitForm();
+      return; // Submit handles navigation to results
     }
-    // Add validation for other steps here as they are implemented
-    // else if (currentStep === 2) { isValid = await trigger(["relationship", "ageRange"]); }
-    // ...
 
     if (isValid) {
-      if (currentStep === steps.length - 1) { // If it's the review step
-        await submitForm();
-      } else {
-        goToNextStep();
-      }
+      goToNextStep();
     } else {
       // Scroll to first error if validation fails
       const firstError = Object.keys(formData.formState.errors).find(key => formData.formState.errors[key]);
@@ -58,26 +55,27 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
   };
 
   const CurrentStepComponent = steps.find((step) => step.id === currentStep)?.component || null;
-  const isLastStep = currentStep === steps.length - 1; // Review step
-  const isResultsStep = currentStep === steps.length;
+  const isReviewStep = currentStep === 4;
+  const isRecommendationsStep = currentStep === 5;
+  const totalFormSteps = steps.length - 1; // Exclude the final recommendations step from the count
 
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto flex flex-col">
       <DialogHeader>
         <DialogTitle className="text-center text-2xl font-bold">
-          {isResultsStep ? "Gift Ideas" : `Step ${currentStep} of ${steps.length - 1}: ${steps[currentStep - 1]?.name}`}
+          {isRecommendationsStep ? "Gift Ideas" : `Step ${currentStep} of ${totalFormSteps}: ${steps[currentStep - 1]?.name}`}
         </DialogTitle>
-        {!isResultsStep && (
+        {!isRecommendationsStep && (
           <DialogDescription className="sr-only">
-            {`You are on step ${currentStep} of ${steps.length - 1}, which is about ${steps[currentStep - 1]?.name}.`}
+            {`You are on step ${currentStep} of ${totalFormSteps}, which is about ${steps[currentStep - 1]?.name}.`}
           </DialogDescription>
         )}
       </DialogHeader>
 
       {/* Horizontal Stepper */}
-      {!isResultsStep && (
+      {!isRecommendationsStep && (
         <div className="flex justify-between items-center mb-6 px-4">
-          {steps.slice(0, steps.length - 1).map((step) => (
+          {steps.slice(0, totalFormSteps).map((step) => (
             <React.Fragment key={step.id}>
               <div className="flex flex-col items-center">
                 <div
@@ -96,7 +94,7 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
                   {step.name}
                 </span>
               </div>
-              {step.id < steps.length - 1 && (
+              {step.id < totalFormSteps && (
                 <div
                   className={cn(
                     "flex-grow h-0.5 mx-2",
@@ -118,12 +116,12 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
         <Button
           variant="outline"
           onClick={goToPreviousStep}
-          disabled={currentStep === 1 || isSubmitting || isResultsStep}
+          disabled={currentStep === 1 || isSubmitting || isRecommendationsStep}
           className="min-w-[80px]"
         >
           Back
         </Button>
-        {isResultsStep ? (
+        {isRecommendationsStep ? (
           <Button onClick={onClose} className="min-w-[120px]">
             Close
           </Button>
@@ -138,8 +136,8 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Finding gifts...
               </>
-            ) : isLastStep ? (
-              "Ask AI for ideas"
+            ) : isReviewStep ? (
+              "See gift ideas"
             ) : (
               "Next"
             )}
