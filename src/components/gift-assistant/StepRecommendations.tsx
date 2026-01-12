@@ -5,71 +5,80 @@ import { useGiftAssistant } from "./GiftAssistantContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ThumbsUp, ThumbsDown, Loader2 } from "lucide-react"; // Added Loader2 import
+import { ThumbsUp, ThumbsDown, Loader2 } from "lucide-react";
 
 // Placeholder for fake product data
-const generateFakeProducts = (count: number, seed: number) => {
+const generateFakeProducts = (count: number, seed: number, formData: any) => {
+  const { relationship, ageRange, interests, budget, giftStyle } = formData;
+  const baseExplanation = `For your ${relationship} (${ageRange}), who likes ${interests.length > 0 ? interests.join(", ") : "general items"}. Budget: ${budget}, Style: ${giftStyle}.`;
+
   const products = [
     {
-      title: "Funny 'Meeting Survivor' Coffee Mug",
-      price: "€14.99",
-      tags: ["Top pick for your colleague", "Office-friendly"],
-      explanation: "Because they like coffee and office jokes",
+      title: "Smart Coffee Mug Warmer with Auto Shut-Off",
+      price: "€24.99",
+      tags: ["Useful", "Tech & gadgets", "Coffee & tea"],
+      explanation: `A practical gift for a ${relationship} who enjoys hot beverages.`,
       image: "/placeholder.svg",
     },
     {
-      title: "Self-Watering Desk Plant Kit",
-      price: "€22.50",
-      tags: ["Office-friendly", "Personalizable"],
-      explanation: "Great for creative plant lovers with small desks",
+      title: "Personalized Leather Journal",
+      price: "€35.00",
+      tags: ["Special & thoughtful", "Books & reading", "Creative"],
+      explanation: `A thoughtful gift for a ${relationship} who appreciates writing or sketching.`,
       image: "/placeholder.svg",
     },
     {
-      title: "Mini Desk Arcade Keychain – Retro Games",
-      price: "€18.00",
-      tags: ["Fun & quirky", "Geeky"],
-      explanation: "Perfect for the gaming enthusiast who needs a desk break",
+      title: "Miniature Desk Zen Garden Kit",
+      price: "€18.50",
+      tags: ["Calm", "Home & decor", "Office-friendly"],
+      explanation: `Perfect for a ${relationship} who enjoys a moment of calm at their desk.`,
       image: "/placeholder.svg",
     },
     {
-      title: "Ergonomic Gel Wrist Rest for Keyboard",
-      price: "€12.99",
-      tags: ["Useful & practical", "Office gadgets"],
-      explanation: "A thoughtful gift for someone who spends hours typing",
+      title: "Gourmet Snack Box - International Selection",
+      price: "€29.99",
+      tags: ["Food & cooking", "Fun & playful"],
+      explanation: `A fun and tasty treat for a ${relationship} who loves trying new foods.`,
       image: "/placeholder.svg",
     },
     {
-      title: "Gourmet Coffee Bean Sampler Pack",
-      price: "€29.00",
-      tags: ["Food & snacks", "Coffee & tea"],
-      explanation: "For the colleague who appreciates a good brew",
+      title: "Portable Bluetooth Speaker - Waterproof",
+      price: "€49.99",
+      tags: ["Tech & gadgets", "Music & audio", "Adventurous"],
+      explanation: `Great for a ${relationship} who enjoys music on the go or outdoors.`,
       image: "/placeholder.svg",
     },
     {
-      title: "Inspirational Desk Calendar 2024",
-      price: "€9.50",
-      tags: ["Safe & neutral", "Office-friendly"],
-      explanation: "A simple yet effective way to brighten their workspace",
+      title: "Funny 'World's Best Boss' Desk Plaque",
+      price: "€12.00",
+      tags: ["Fun & playful", "Colleague / Boss"],
+      explanation: `A light-hearted gift for a ${relationship} with a good sense of humor.`,
       image: "/placeholder.svg",
     },
   ];
 
   // Simple pseudo-random selection based on seed
   const shuffled = [...products].sort(() => 0.5 - Math.sin(seed));
-  return shuffled.slice(0, count);
+  return shuffled.slice(0, count).map(product => ({
+    ...product,
+    explanation: product.explanation.replace(
+      /a \$\{(\w+)\}/g,
+      (_, key) => `a ${formData[key] || 'person'}`
+    ),
+  }));
 };
 
 const StepRecommendations = () => {
-  const { formData, goToStep, setIsSubmitting } = useGiftAssistant();
+  const { formData, goToStep, setIsSubmitting, resetFormAndGoToFirstStep } = useGiftAssistant();
   const { getValues } = formData;
-  const [recommendations, setRecommendations] = React.useState(() => generateFakeProducts(6, Math.random()));
+  const [recommendations, setRecommendations] = React.useState(() => generateFakeProducts(6, Math.random(), getValues()));
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
 
   const handleShowMoreIdeas = async () => {
     setIsLoadingMore(true);
     // Simulate API call for new ideas
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    setRecommendations(generateFakeProducts(6, Math.random() * 1000)); // Generate new set
+    setRecommendations(generateFakeProducts(6, Math.random() * 1000, getValues())); // Generate new set
     setIsLoadingMore(false);
     toast.success("New gift ideas loaded!");
   };
@@ -86,7 +95,7 @@ const StepRecommendations = () => {
     <div className="p-4 space-y-6">
       <h2 className="text-2xl font-bold text-center">Gift ideas picked just for them</h2>
       <p className="text-gray-600 dark:text-gray-400 text-center">
-        Based on what you told us, here are some options that should feel thoughtful and on-budget.
+        Based on what you told us, here’s what we found.
       </p>
 
       <div className="flex justify-center mb-4">
@@ -138,7 +147,7 @@ const StepRecommendations = () => {
           )}
         </Button>
         <Button variant="link" onClick={() => goToStep(4)}>
-          Change answers
+          Change my answers
         </Button>
       </div>
     </div>

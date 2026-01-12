@@ -3,105 +3,103 @@
 import React from "react";
 import { useGiftAssistant } from "./GiftAssistantContext";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 const budgetPresets = [
-  { label: "€5–10", min: 5, max: 10 },
-  { label: "€10–20", min: 10, max: 20 },
-  { label: "€20–30", min: 20, max: 30 },
-  { label: "€30–50", min: 30, max: 50 },
+  { value: "Under 10", label: "Under €10" },
+  { value: "10-25", label: "€10–25" },
+  { value: "25-50", label: "€25–50" },
+  { value: "50-100", label: "€50–100" },
+  { value: "100+", label: "€100+" },
 ];
 
-const giftTones = [
-  { value: "Safe & neutral", description: "No risk, everyone will find it okay." },
-  { value: "Fun & quirky", description: "Light-hearted, a bit playful." },
-  { value: "Useful & practical", description: "They’ll actually use it at work or at home." },
+const giftStyles = [
+  { value: "Safe & classic", description: "Can’t go wrong." },
+  { value: "Useful", description: "Something practical they’ll use." },
+  { value: "Fun & playful", description: "Something that makes them smile." },
+  { value: "Special & thoughtful", description: "More personal, a bit more emotional." },
 ];
 
 const StepBudgetStyle = () => {
   const { formData } = useGiftAssistant();
   const { register, watch, setValue, formState: { errors } } = formData;
-  const budgetMin = watch("budgetMin");
-  const budgetMax = watch("budgetMax");
-
-  const handleBudgetChange = (value: number[]) => {
-    setValue("budgetMin", value[0], { shouldValidate: true });
-    setValue("budgetMax", value[1], { shouldValidate: true });
-  };
-
-  const handlePresetClick = (min: number, max: number) => {
-    setValue("budgetMin", min, { shouldValidate: true });
-    setValue("budgetMax", max, { shouldValidate: true });
-  };
+  const selectedBudget = watch("budget");
+  const selectedGiftStyle = watch("giftStyle");
+  const riskTolerance = watch("riskTolerance");
 
   return (
     <div className="p-4 space-y-6">
-      <h2 className="text-2xl font-bold mb-2">Budget and gift style</h2>
-      <p className="text-gray-600 dark:text-gray-400">We’ll respect your budget and the tone of your office.</p>
+      <h2 className="text-2xl font-bold mb-2">What kind of gift do you want?</h2>
+      <p className="text-gray-600 dark:text-gray-400">We’ll keep ideas within your budget and style.</p>
 
       {/* Budget */}
       <div>
-        <Label htmlFor="budget-slider" className="mb-4 block">Budget: €{budgetMin} – €{budgetMax}</Label>
-        <Slider
-          id="budget-slider"
-          min={5}
-          max={50}
-          step={1}
-          value={[budgetMin, budgetMax]}
-          onValueChange={handleBudgetChange}
-          className={cn("w-full", (errors.budgetMin || errors.budgetMax) && "border-destructive")}
-        />
-        <div className="flex justify-between mt-4 gap-2">
+        <Label className="mb-2 block">Budget</Label>
+        <div className="flex flex-wrap justify-between gap-2">
           {budgetPresets.map((preset) => (
             <Button
-              key={preset.label}
-              variant={budgetMin === preset.min && budgetMax === preset.max ? "default" : "outline"}
-              onClick={() => handlePresetClick(preset.min, preset.max)}
-              className="flex-1"
+              key={preset.value}
+              variant={selectedBudget === preset.value ? "default" : "outline"}
+              onClick={() => setValue("budget", preset.value, { shouldValidate: true })}
+              className="flex-1 min-w-[80px]"
             >
               {preset.label}
             </Button>
           ))}
         </div>
-        {(errors.budgetMin || errors.budgetMax) && (
-          <p className="text-sm text-destructive mt-1">{errors.budgetMin?.message || errors.budgetMax?.message}</p>
+        {errors.budget && (
+          <p className="text-sm text-destructive mt-1">{errors.budget.message}</p>
         )}
       </div>
 
-      {/* Gift Tone */}
+      {/* Gift Style */}
       <div>
         <Label className="mb-2 block">Gift style</Label>
         <RadioGroup
-          onValueChange={(value) => setValue("giftTone", value, { shouldValidate: true })}
-          value={watch("giftTone")}
+          onValueChange={(value) => setValue("giftStyle", value, { shouldValidate: true })}
+          value={selectedGiftStyle}
           className="grid grid-cols-1 gap-3"
         >
-          {giftTones.map((tone) => (
+          {giftStyles.map((style) => (
             <Label
-              key={tone.value}
-              htmlFor={tone.value}
+              key={style.value}
+              htmlFor={style.value}
               className={cn(
                 "flex flex-col items-start rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                watch("giftTone") === tone.value && "border-primary ring-2 ring-primary"
+                selectedGiftStyle === style.value && "border-primary ring-2 ring-primary"
               )}
             >
               <RadioGroupItem
-                value={tone.value}
-                id={tone.value}
+                value={style.value}
+                id={style.value}
                 className="sr-only"
-                {...register("giftTone")}
+                {...register("giftStyle")}
               />
-              <span className="font-semibold">{tone.value}</span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">{tone.description}</span>
+              <span className="font-semibold">{style.value}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{style.description}</span>
             </Label>
           ))}
         </RadioGroup>
-        {errors.giftTone && (
-          <p className="text-sm text-destructive mt-1">{errors.giftTone.message}</p>
+        {errors.giftStyle && (
+          <p className="text-sm text-destructive mt-1">{errors.giftStyle.message}</p>
         )}
+      </div>
+
+      {/* Risk Tolerance Toggle */}
+      <div className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4">
+        <Label htmlFor="risk-tolerance" className="flex flex-col cursor-pointer">
+          <span className="font-semibold">I’m okay with slightly more original gifts</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">This might include less conventional suggestions.</span>
+        </Label>
+        <Switch
+          id="risk-tolerance"
+          checked={riskTolerance}
+          onCheckedChange={(checked) => setValue("riskTolerance", checked)}
+          {...register("riskTolerance")}
+        />
       </div>
     </div>
   );

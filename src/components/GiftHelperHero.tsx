@@ -16,22 +16,22 @@ const GiftHelperHero = () => {
           {/* Placeholder for illustration/photo */}
           <img
             src="/placeholder.svg" // Using a placeholder image
-            alt="Colleagues exchanging gifts in an office during holidays"
+            alt="People exchanging gifts"
             className="max-h-64 w-full object-cover rounded-md"
           />
         </div>
         {/* Right: Content */}
         <div className="md:w-1/2 p-8 flex flex-col justify-center">
-          <h1 className="text-4xl font-bold mb-3">Find the perfect gift in 3 steps.</h1>
+          <h1 className="text-4xl font-bold mb-3">Need help choosing a gift?</h1>
           <p className="text-lg mb-6 max-w-md">
-            Tell us who it’s for and your budget. AI will do the rest.
+            Tell us who it’s for and what they like. eBay will find gifts they’ll actually love.
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button
               className="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 px-6 rounded-full text-lg shadow-md transition-all duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-yellow-300 focus-visible:ring-offset-2"
               onClick={() => setIsModalOpen(true)}
             >
-              Start gift helper
+              Start Gift Helper
             </Button>
           </div>
         </div>
@@ -43,21 +43,21 @@ const GiftHelperHero = () => {
         <div className="flex items-center justify-center p-6 pb-0">
           <img
             src="/placeholder.svg" // Using a placeholder image
-            alt="Colleagues exchanging gifts in an office during holidays"
+            alt="People exchanging gifts"
             className="max-h-48 w-full object-cover rounded-md"
           />
         </div>
         {/* Bottom: Content */}
         <div className="p-6 flex flex-col justify-center text-center">
-          <h1 className="text-3xl font-bold mb-2">Find the perfect gift in 3 steps.</h1>
+          <h1 className="text-3xl font-bold mb-2">Need help choosing a gift?</h1>
           <p className="text-base mb-5">
-            Tell us who it’s for and your budget. AI will do the rest.
+            Tell us who it’s for and what they like. eBay will find gifts they’ll actually love.
           </p>
           <Button
             className="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-bold py-3 px-6 rounded-full text-lg shadow-md transition-all duration-200 ease-in-out w-full mb-3 focus-visible:ring-2 focus-visible:ring-yellow-300 focus-visible:ring-offset-2"
             onClick={() => setIsModalOpen(true)}
           >
-            Start gift helper
+            Start Gift Helper
           </Button>
         </div>
       </div>

@@ -14,27 +14,29 @@ interface GiftAssistantContextType {
   isSubmitting: boolean;
   setIsSubmitting: (submitting: boolean) => void;
   submitForm: () => Promise<void>;
+  resetFormAndGoToFirstStep: () => void;
 }
 
 const GiftAssistantContext = createContext<GiftAssistantContextType | undefined>(undefined);
 
 export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => {
-  const totalSteps = 4; // "Who is it for?", "What do they like?", "Budget & style", "Review & confirm"
+  const totalSteps = 4; // "Who is it for?", "What are they like?", "Budget & type of gift", "Review & confirm"
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formData = useForm<GiftAssistantFormData>({
     resolver: zodResolver(GiftAssistantSchema),
     defaultValues: {
-      occasion: "Secret Santa at work", // Default as per prompt
-      occasionText: "",
-      relationship: "Teammate", // Default
-      ageRange: "25–34", // Default
+      relationship: "",
+      relationshipText: "",
+      ageRange: "",
+      occasion: [],
+      personality: [],
       interests: [],
       interestFreeText: "",
-      budgetMin: 10, // Default budget range
-      budgetMax: 20,
-      giftTone: "Safe & neutral", // Default
+      budget: "",
+      giftStyle: "",
+      riskTolerance: false,
     },
   });
 
@@ -65,6 +67,11 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
     setCurrentStep(totalSteps + 1); // Move to results step
   };
 
+  const resetFormAndGoToFirstStep = () => {
+    formData.reset();
+    setCurrentStep(1);
+  };
+
   return (
     <GiftAssistantContext.Provider
       value={{
@@ -76,6 +83,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
         isSubmitting,
         setIsSubmitting,
         submitForm,
+        resetFormAndGoToFirstStep,
       }}
     >
       {children}

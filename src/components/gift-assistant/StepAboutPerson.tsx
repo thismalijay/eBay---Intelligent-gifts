@@ -7,23 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { CheckIcon } from "lucide-react";
 
-const occasions = [
-  { value: "Secret Santa at work", label: "Secret Santa at work" },
-  { value: "Birthday at work", label: "Birthday at work" },
-  { value: "Holiday gift exchange", label: "Holiday gift exchange" },
-  { value: "Thank you gift", label: "Thank you gift" },
+const relationships = [
+  { value: "Partner", label: "Partner" },
+  { value: "Close friend", label: "Close friend" },
+  { value: "Family member", label: "Family member" },
+  { value: "Child / Teen", label: "Child / Teen" },
+  { value: "Colleague / Boss", label: "Colleague / Boss" },
+  { value: "Someone I don’t know well", label: "Someone I don’t know well" },
   { value: "Other", label: "Other" },
 ];
 
-const relationships = [
-  { value: "Teammate", label: "Teammate" },
-  { value: "Manager", label: "Manager" },
-  { value: "Direct report", label: "Direct report" },
-  { value: "Other colleague", label: "Other colleague" },
-];
-
 const ageRanges = [
+  { value: "0–5", label: "0–5" },
+  { value: "6–12", label: "6–12" },
+  { value: "13–17", label: "13–17" },
   { value: "18–24", label: "18–24" },
   { value: "25–34", label: "25–34" },
   { value: "35–44", label: "35–44" },
@@ -32,69 +31,43 @@ const ageRanges = [
   { value: "I’m not sure", label: "I’m not sure" },
 ];
 
+const occasionOptions = [
+  "Birthday", "Christmas / Holidays", "Anniversary", "Thank you", "Just because", "Other"
+];
+
 const StepAboutPerson = () => {
   const { formData } = useGiftAssistant();
   const { register, watch, setValue, formState: { errors } } = formData;
-  const selectedOccasion = watch("occasion");
+  const selectedRelationship = watch("relationship");
+  const selectedOccasions = watch("occasion") || [];
+
+  const handleOccasionToggle = (occasion: string) => {
+    const currentOccasions = new Set(selectedOccasions);
+    if (currentOccasions.has(occasion)) {
+      currentOccasions.delete(occasion);
+    } else {
+      currentOccasions.add(occasion);
+    }
+    setValue("occasion", Array.from(currentOccasions), { shouldValidate: true });
+  };
 
   return (
     <div className="p-4 space-y-6">
-      <h2 className="text-2xl font-bold mb-2">Who is it for?</h2>
-      <p className="text-gray-600 dark:text-gray-400">Just a few details help us avoid awkward gifts.</p>
-
-      {/* Occasion */}
-      <div>
-        <Label htmlFor="occasion" className="mb-2 block">Occasion</Label>
-        <Select
-          onValueChange={(value) => {
-            setValue("occasion", value, { shouldValidate: true });
-            if (value !== "Other") {
-              setValue("occasionText", "");
-            }
-          }}
-          value={selectedOccasion}
-        >
-          <SelectTrigger className={cn(errors.occasion && "border-destructive")} id="occasion">
-            <SelectValue placeholder="Select an occasion" />
-          </SelectTrigger>
-          <SelectContent>
-            {occasions.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.occasion && (
-          <p className="text-sm text-destructive mt-1">{errors.occasion.message}</p>
-        )}
-        {selectedOccasion === "Other" && (
-          <div className="mt-4">
-            <Label htmlFor="occasionText" className="mb-2 block">Describe the occasion</Label>
-            <Input
-              id="occasionText"
-              placeholder="Example: Team celebration, promotion, new baby…"
-              {...register("occasionText", {
-                required: selectedOccasion === "Other" ? "Please describe the occasion." : false,
-                minLength: {
-                  value: 3,
-                  message: "Please provide at least 3 characters for the occasion description.",
-                },
-              })}
-              className={cn(errors.occasionText && "border-destructive")}
-            />
-            {errors.occasionText && (
-              <p className="text-sm text-destructive mt-1">{errors.occasionText.message}</p>
-            )}
-          </div>
-        )}
-      </div>
+      <h2 className="text-2xl font-bold mb-2">Who is this gift for?</h2>
+      <p className="text-gray-600 dark:text-gray-400">We’ll adapt ideas depending on your relationship and their age.</p>
 
       {/* Relationship */}
       <div>
         <Label className="mb-2 block">Relationship</Label>
         <RadioGroup
-          onValueChange={(value) => setValue("relationship", value, { shouldValidate: true })}
-          value={watch("relationship")}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+          onValueChange={(value) => {
+            setValue("relationship", value, { shouldValidate: true });
+            if (value !== "Other") {
+              setValue("relationshipText", "");
+            }
+          }}
+          value={selectedRelationship}
+          className="grid grid-cols-2 sm:grid-cols-3 gap-2"
         >
           {relationships.map((rel) => (
             <Label
@@ -102,7 +75,7 @@ const StepAboutPerson = () => {
               htmlFor={rel.value}
               className={cn(
                 "flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                watch("relationship") === rel.value && "border-primary ring-2 ring-primary"
+                selectedRelationship === rel.value && "border-primary ring-2 ring-primary"
               )}
             >
               <RadioGroupItem
@@ -117,6 +90,26 @@ const StepAboutPerson = () => {
         </RadioGroup>
         {errors.relationship && (
           <p className="text-sm text-destructive mt-1">{errors.relationship.message}</p>
+        )}
+        {selectedRelationship === "Other" && (
+          <div className="mt-4">
+            <Label htmlFor="relationshipText" className="mb-2 block">Describe the relationship</Label>
+            <Input
+              id="relationshipText"
+              placeholder="Example: My neighbor, my child's teacher…"
+              {...register("relationshipText", {
+                required: selectedRelationship === "Other" ? "Please describe the relationship." : false,
+                minLength: {
+                  value: 3,
+                  message: "Please provide at least 3 characters for the relationship description.",
+                },
+              })}
+              className={cn(errors.relationshipText && "border-destructive")}
+            />
+            {errors.relationshipText && (
+              <p className="text-sm text-destructive mt-1">{errors.relationshipText.message}</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -139,6 +132,29 @@ const StepAboutPerson = () => {
         {errors.ageRange && (
           <p className="text-sm text-destructive mt-1">{errors.ageRange.message}</p>
         )}
+      </div>
+
+      {/* Occasion */}
+      <div>
+        <Label className="mb-2 block">Occasion (optional)</Label>
+        <div className="flex flex-wrap gap-2">
+          {occasionOptions.map((occasion) => (
+            <button
+              key={occasion}
+              type="button"
+              onClick={() => handleOccasionToggle(occasion)}
+              className={cn(
+                "flex items-center justify-center px-4 py-2 rounded-full border transition-colors",
+                selectedOccasions.includes(occasion)
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                  : "bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+              )}
+            >
+              {selectedOccasions.includes(occasion) && <CheckIcon className="mr-2 h-4 w-4" />}
+              {occasion}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,18 +1,16 @@
 import { z } from "zod";
 
 export const GiftAssistantSchema = z.object({
-  occasion: z.string().min(1, "Please choose an occasion to continue."),
-  occasionText: z.string().optional(),
-  relationship: z.string().min(1, "Please select a relationship."),
+  relationship: z.string().min(1, "Please choose a relationship to continue."),
+  relationshipText: z.string().optional(), // For 'Other' relationship
   ageRange: z.string().min(1, "Please select an age range."),
-  interests: z.array(z.string()).optional(), // Optional, hint if none selected
+  occasion: z.array(z.string()).optional(), // Multi-select, optional
+  personality: z.array(z.string()).optional(), // Multi-select, optional
+  interests: z.array(z.string()).optional(), // Multi-select, optional
   interestFreeText: z.string().optional(),
-  budgetMin: z.number().min(5, "Budget minimum must be at least 5."),
-  budgetMax: z.number().min(5, "Budget maximum must be at least 5."),
-  giftTone: z.string().min(1, "Please select a gift style."),
-}).refine((data) => data.budgetMax >= data.budgetMin, {
-  message: "Budget maximum must be greater than or equal to minimum.",
-  path: ["budgetMax"], // This specifies which field the error should be associated with
+  budget: z.string().min(1, "Please select a budget range."), // Now a string for presets
+  giftStyle: z.string().min(1, "Please choose a gift style."),
+  riskTolerance: z.boolean().optional(),
 });
 
 export type GiftAssistantFormData = z.infer<typeof GiftAssistantSchema>;

@@ -13,29 +13,29 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 const steps = [
-  { id: 1, name: "Who is it for?", component: StepAboutPerson },
-  { id: 2, name: "What do they like?", component: StepInterests },
-  { id: 3, name: "Budget & style", component: StepBudgetStyle },
+  { id: 1, name: "Who is the gift for?", component: StepAboutPerson },
+  { id: 2, name: "What are they like?", component: StepInterests },
+  { id: 3, name: "Budget & type of gift", component: StepBudgetStyle },
   { id: 4, name: "Review & confirm", component: StepReview },
   { id: 5, name: "Recommendations", component: StepRecommendations }, // This is the final results step
 ];
 
 const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
-  const { currentStep, goToNextStep, goToPreviousStep, formData, isSubmitting, submitForm } = useGiftAssistant();
+  const { currentStep, goToNextStep, goToPreviousStep, formData, isSubmitting, submitForm, resetFormAndGoToFirstStep } = useGiftAssistant();
   const { trigger, getValues } = formData;
 
   const handleNext = async () => {
     let isValid = false;
     if (currentStep === 1) {
-      isValid = await trigger(["occasion", "relationship", "ageRange"]);
-      if (getValues("occasion") === "Other") {
-        isValid = isValid && await trigger("occasionText");
+      isValid = await trigger(["relationship", "ageRange"]);
+      if (getValues("relationship") === "Other") {
+        isValid = isValid && await trigger("relationshipText");
       }
     } else if (currentStep === 2) {
-      // Interests are optional, no strict validation needed for 'Next'
+      // Personality, interests, and free text are optional, no strict validation needed for 'Next'
       isValid = true;
     } else if (currentStep === 3) {
-      isValid = await trigger(["budgetMin", "budgetMax", "giftTone"]);
+      isValid = await trigger(["budget", "giftStyle"]);
     } else if (currentStep === 4) { // Review step
       isValid = true; // All previous steps are validated
       await submitForm();
@@ -134,7 +134,7 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Finding gifts...
+                {isReviewStep ? "Finding gifts..." : "Loading..."}
               </>
             ) : isReviewStep ? (
               "See gift ideas"
