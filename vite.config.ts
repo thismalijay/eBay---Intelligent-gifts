@@ -9,6 +9,7 @@ export default defineConfig(() => ({
     port: 8080,
   },
   plugins: [dyadComponentTagger(), react()],
+  base: '/eBay---Intelligent-gifts/',  // Ajout de la ligne base
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
