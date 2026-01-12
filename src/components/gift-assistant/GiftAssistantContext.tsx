@@ -135,7 +135,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData) => {
   };
 };
 
-export const GiftAssistantProvider = ({ children }: { ReactNode }) => {
+export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => {
   const totalFormSteps = 4;
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
