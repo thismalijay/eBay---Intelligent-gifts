@@ -72,6 +72,15 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData): GiftProfilePayloa
     "Other": "other",
   };
 
+  const occasionMap: { [key: string]: string } = {
+    "Birthday": "birthday",
+    "Christmas / Holidays": "christmas",
+    "Anniversary": "anniversary",
+    "Thank you": "thank_you",
+    "Just because": "just_because",
+    "Other": "other",
+  };
+
   const ageRangeMap: { [key: string]: string } = {
     "0–5": "0-5",
     "6–12": "6-12",
@@ -127,7 +136,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData): GiftProfilePayloa
   };
 
   const selectedBudgetRange = budgetMap[data.budget] || { min: 0, max: 999999 };
-  const selectedOccasion = data.occasion && data.occasion.length > 0 ? occasionMap[data.occasion[0]] || "other" : null;
+  const selectedOccasion = data.occasion && data.occasion.length > 0 ? occasionMap[data.occasion[0]] || "other" : null; // Error here
 
   return {
     recipient: {
