@@ -206,23 +206,45 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
         body: JSON.stringify(payload),
       });
 
+      const contentType = response.headers.get("content-type");
+      const isJson = contentType && contentType.includes("application/json");
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch gift recommendations.");
+        let errorDetail = "Failed to fetch gift recommendations.";
+        if (isJson) {
+          try {
+            const errorData = await response.json();
+            errorDetail = errorData.message || errorDetail;
+          } catch (jsonParseError) {
+            // Fallback if JSON parsing fails even with application/json header
+            errorDetail = await response.text() || errorDetail;
+          }
+        } else {
+          errorDetail = await response.text() || errorDetail;
+        }
+        throw new Error(errorDetail);
       }
 
-      const data = await response.json();
-      setGiftExplanation(data.gift_explanation);
-      setRecommendations(data.items);
-      if (!isRefetch) {
-        setCurrentStep(totalSteps + 1); // Move to results step only on initial submit
+      // If response is OK, and it's supposed to be JSON
+      if (isJson) {
+        const data = await response.json();
+        setGiftExplanation(data.gift_explanation);
+        setRecommendations(data.items);
+        if (!isRefetch) {
+          setCurrentStep(totalSteps + 1);
+        }
+      } else {
+        // If response is OK but not JSON, it's an unexpected scenario for this API
+        throw new Error("Received an unexpected non-JSON response from the server.");
       }
+
     } catch (err: any) {
       console.error("API Error:", err);
       setError(true);
       setErrorMessage(err.message || "We couldn't fetch gift ideas right now. Please try again in a moment.");
       if (!isRefetch) {
-        setCurrentStep(totalSteps + 2); // Move to an error step if needed, or handle within modal
+        // If initial fetch failed, go to an error state, not recommendations
+        setCurrentStep(totalSteps + 2); // Assuming totalSteps + 2 is an error step or handled by modal
       }
     } finally {
       setIsSubmitting(false);
