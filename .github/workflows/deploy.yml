@@ -17,29 +17,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm' # Active le cache pour pnpm
+          # Nous n'avons plus besoin de 'cache: pnpm' ici car pnpm/action-setup gère son propre cache.
 
-      - name: Install pnpm
+      - name: Setup pnpm and install dependencies
         uses: pnpm/action-setup@v3
         with:
           version: 9
-          run_install: false
+          # Par défaut, 'run_install' est à 'true' et 'cache' est à 'true'.
+          # Cela signifie que pnpm sera installé, ajouté au PATH, les dépendances seront installées,
+          # et le cache pnpm sera configuré automatiquement.
 
-      - name: Get pnpm store directory
-        shell: bash
+      - name: Verify pnpm installation
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          echo "Current PATH: $PATH"
+          command -v pnpm
+          pnpm --version
 
       - name: Build project
         run: pnpm build
