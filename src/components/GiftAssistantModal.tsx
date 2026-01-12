@@ -10,7 +10,7 @@ import StepBudgetStyle from "./gift-assistant/StepBudgetStyle";
 import StepReview from "./gift-assistant/StepReview";
 import StepRecommendations from "./gift-assistant/StepRecommendations";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react"; // Added AlertCircle import
 
 const steps = [
   { id: 1, name: "Who is the gift for?", component: StepAboutPerson },
@@ -21,7 +21,19 @@ const steps = [
 ];
 
 const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
-  const { currentStep, goToNextStep, goToPreviousStep, formData, isSubmitting, submitForm, resetFormAndGoToFirstStep } = useGiftAssistant();
+  const {
+    currentStep,
+    goToNextStep,
+    goToPreviousStep,
+    goToStep,
+    formData,
+    isSubmitting,
+    submitForm,
+    resetFormAndGoToFirstStep,
+    error,
+    errorMessage,
+    recommendations,
+  } = useGiftAssistant();
   const { trigger, getValues } = formData;
 
   const handleNext = async () => {
@@ -32,12 +44,11 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
         isValid = isValid && await trigger("relationshipText");
       }
     } else if (currentStep === 2) {
-      // Personality, interests, and free text are optional, no strict validation needed for 'Next'
-      isValid = true;
+      isValid = true; // Personality, interests, and free text are optional
     } else if (currentStep === 3) {
       isValid = await trigger(["budget", "giftStyle"]);
     } else if (currentStep === 4) { // Review step
-      isValid = true; // All previous steps are validated
+      isValid = true;
       await submitForm();
       return; // Submit handles navigation to results
     }
@@ -45,7 +56,6 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
     if (isValid) {
       goToNextStep();
     } else {
-      // Scroll to first error if validation fails
       const firstError = Object.keys(formData.formState.errors).find(key => formData.formState.errors[key]);
       if (firstError) {
         const element = document.getElementById(firstError);
@@ -58,6 +68,9 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
   const isReviewStep = currentStep === 4;
   const isRecommendationsStep = currentStep === 5;
   const totalFormSteps = steps.length - 1; // Exclude the final recommendations step from the count
+
+  // Determine if we should show the error state
+  const showApiErrorState = error && currentStep !== 5; // Show error if API failed and we're not on recommendations page
 
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto flex flex-col">
@@ -73,7 +86,7 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
       </DialogHeader>
 
       {/* Horizontal Stepper */}
-      {!isRecommendationsStep && (
+      {!isRecommendationsStep && !showApiErrorState && (
         <div className="flex justify-between items-center mb-6 px-4">
           {steps.slice(0, totalFormSteps).map((step) => (
             <React.Fragment key={step.id}>
@@ -108,40 +121,76 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
       )}
 
       <div className="flex-grow overflow-y-auto">
-        {CurrentStepComponent && <CurrentStepComponent />}
+        {isSubmitting ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-4">
+            <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-4" />
+            <p className="text-lg font-medium">Looking through millions of gifts for the best matches...</p>
+          </div>
+        ) : showApiErrorState ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-4 text-destructive">
+            <AlertCircle className="h-12 w-12 mb-4" />
+            <p className="text-lg font-medium mb-2">Oops! Something went wrong.</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{errorMessage}</p>
+          </div>
+        ) : (
+          CurrentStepComponent && <CurrentStepComponent />
+        )}
       </div>
 
       {/* Bottom Area (Persistent) */}
       <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Button
-          variant="outline"
-          onClick={goToPreviousStep}
-          disabled={currentStep === 1 || isSubmitting || isRecommendationsStep}
-          className="min-w-[80px]"
-        >
-          Back
-        </Button>
-        {isRecommendationsStep ? (
-          <Button onClick={onClose} className="min-w-[120px]">
-            Close
-          </Button>
+        {showApiErrorState ? (
+          <>
+            <Button variant="outline" onClick={() => goToStep(4)} className="min-w-[120px]">
+              Back to questions
+            </Button>
+            <Button onClick={submitForm} disabled={isSubmitting} className="min-w-[120px]">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Trying again...
+                </>
+              ) : (
+                "Try again"
+              )}
+            </Button>
+          </>
+        ) : isRecommendationsStep ? (
+          <>
+            <Button variant="outline" onClick={() => goToStep(4)} className="min-w-[120px]">
+              Change my answers
+            </Button>
+            <Button onClick={onClose} className="min-w-[120px]">
+              Close
+            </Button>
+          </>
         ) : (
-          <Button
-            onClick={handleNext}
-            disabled={isSubmitting}
-            className="min-w-[120px]"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isReviewStep ? "Finding gifts..." : "Loading..."}
-              </>
-            ) : isReviewStep ? (
-              "See gift ideas"
-            ) : (
-              "Next"
-            )}
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={goToPreviousStep}
+              disabled={currentStep === 1 || isSubmitting}
+              className="min-w-[80px]"
+            >
+              Back
+            </Button>
+            <Button
+              onClick={handleNext}
+              disabled={isSubmitting}
+              className="min-w-[120px]"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isReviewStep ? "Finding gifts..." : "Loading..."}
+                </>
+              ) : isReviewStep ? (
+                "See gift ideas"
+              ) : (
+                "Next"
+              )}
+            </Button>
+          </>
         )}
       </div>
     </DialogContent>
