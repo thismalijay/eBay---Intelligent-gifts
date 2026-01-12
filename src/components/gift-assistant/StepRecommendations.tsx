@@ -5,7 +5,7 @@ import { useGiftAssistant } from "./GiftAssistantContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Loader2 } from "lucide-react"; // Added Loader2 import
 
 // Placeholder for fake product data
 const generateFakeProducts = (count: number, seed: number) => {
