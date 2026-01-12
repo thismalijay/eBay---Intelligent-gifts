@@ -1,16 +1,13 @@
-import { serve } from "https://deno.land/std@0.178.0/http/server.ts";
-import { OpenAI } from "https://deno.land/x/openai@v4.33.0/mod.ts";
-
-// Define the expected input structure from the frontend
-interface GiftProfile {
+// supabase/functions/gift-helper/index.ts
+type GiftProfile = {
   recipient: {
     relationship: string;
     age_range: string;
-    gender?: string;
+    gender?: string; // Added gender as it's in the form data and backend schema
   };
-  occasion?: string;
-  personality?: string[];
-  interests?: string[];
+  occasion: string | null;
+  personality: string[];
+  interests: string[];
   free_description?: string;
   budget: {
     min: number;
@@ -18,21 +15,9 @@ interface GiftProfile {
   };
   gift_style: string;
   risk_tolerance: string;
-}
+};
 
-// Define the expected output structure from OpenAI
-interface OpenAIGiftIdea {
-  title: string;
-  description: string;
-  approx_price: number;
-  reason: string;
-}
-
-interface OpenAIResponse {
-  items: OpenAIGiftIdea[];
-}
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   // CORS headers for local development and Supabase Edge Functions
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -45,92 +30,144 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Ensure the request method is POST
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-      headers: corsHeaders,
-      status: 405,
-    });
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: corsHeaders }
+    );
   }
 
-  // Get OpenAI API key from environment variables
-  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-  if (!OPENAI_API_KEY) {
-    return new Response(JSON.stringify({ error: "Missing OpenAI API key" }), {
-      headers: corsHeaders,
-      status: 500,
-    });
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!apiKey) {
+    return new Response(
+      JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }),
+      { status: 500, headers: corsHeaders }
+    );
   }
 
   let giftProfile: GiftProfile;
+
   try {
-    const body = await req.json();
-    // Basic validation for required fields and types
-    if (
-      !body.recipient ||
-      typeof body.recipient.relationship !== 'string' ||
-      typeof body.recipient.age_range !== 'string' ||
-      !body.budget ||
-      typeof body.budget.min !== 'number' ||
-      typeof body.budget.max !== 'number' ||
-      typeof body.gift_style !== 'string' ||
-      typeof body.risk_tolerance !== 'string'
-    ) {
-      throw new Error("Invalid gift profile payload: missing required fields or incorrect types.");
-    }
-    giftProfile = body as GiftProfile;
-  } catch (error) {
-    return new Response(JSON.stringify({ error: "Invalid JSON body", details: error.message }), {
-      headers: corsHeaders,
-      status: 400,
-    });
+    giftProfile = await req.json();
+  } catch (_e) {
+    return new Response(
+      JSON.stringify({ error: "Invalid JSON body" }),
+      { status: 400, headers: corsHeaders }
+    );
   }
 
-  const openai = new OpenAI({
-    apiKey: OPENAI_API_KEY,
-  });
+  if (
+    !giftProfile.recipient ||
+    !giftProfile.recipient.relationship ||
+    !giftProfile.recipient.age_range ||
+    !giftProfile.budget ||
+    typeof giftProfile.budget.min !== "number" ||
+    typeof giftProfile.budget.max !== "number"
+  ) {
+    return new Response(
+      JSON.stringify({ error: "Missing or invalid required fields" }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
 
-  const systemPrompt = `You are a gift planning engine. You receive a JSON profile describing who the gift is for, their personality, interests, and budget. Suggest 5 gift ideas that would fit this person and budget. For each idea, include: a short title, a short description, an approximate price within the given budget, and a short explanation of why it fits. Return the result as a JSON object with a "items" array.`;
+  const systemPrompt = `
+You are a gift planning engine.
+
+You receive a JSON profile describing:
+- who the gift is for (relationship, age range),
+- the occasion,
+- their personality traits and interests,
+- an optional free-text description,
+- a budget range,
+- the desired gift style,
+- and the risk tolerance.
+
+Your task:
+Suggest 5 specific gift ideas that would fit this person and budget.
+
+For each gift idea, return:
+- title: short name of the gift
+- description: one-sentence description
+- approx_price: a number within the given budget range
+- reason: short explanation of why this gift fits (based on interests, personality, relationship, occasion, gift_style, risk_tolerance).
+
+Output STRICTLY VALID JSON with the following structure:
+{
+  "items": [
+    {
+      "title": "...",
+      "description": "...",
+      "approx_price": 0,
+      "reason": "..."
+    }
+  ]
+}
+No extra text, no markdown, only JSON.
+  `.trim();
 
   try {
-    const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Using gpt-3.5-turbo as a cost-effective default
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(giftProfile),
-        },
-      ],
-      response_format: { type: "json_object" }, // Instruct OpenAI to return JSON
-      temperature: 0.7, // A bit creative, but not too wild
-      max_tokens: 500, // Limit response size
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3-8b-instruct:free",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Here is the gift profile in JSON:\n${JSON.stringify(giftProfile)}`
+          }
+        ]
+      })
     });
 
-    const rawOutput = chatCompletion.choices[0].message.content;
-    if (!rawOutput) {
-      throw new Error("OpenAI returned an empty response.");
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("[gift-helper] LLM request failed:", text);
+      return new Response(
+        JSON.stringify({ error: "LLM request failed", details: text }),
+        { status: 502, headers: corsHeaders }
+      );
     }
 
-    const openaiResponse: OpenAIResponse = JSON.parse(rawOutput);
+    const completion = await response.json();
+    const content: string | undefined =
+      completion.choices?.[0]?.message?.content ?? completion.choices?.[0]?.message;
 
-    // Basic validation of OpenAI's output structure
-    if (!openaiResponse.items || !Array.isArray(openaiResponse.items)) {
-      throw new Error("OpenAI response is not in the expected format (missing 'items' array).");
+    if (!content || typeof content !== "string") {
+      console.error("[gift-helper] Empty or invalid response from LLM:", content);
+      return new Response(
+        JSON.stringify({ error: "Empty or invalid response from LLM" }),
+        { status: 502, headers: corsHeaders }
+      );
     }
 
-    return new Response(JSON.stringify(openaiResponse), {
-      headers: corsHeaders,
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (_e) {
+      console.error("[gift-helper] LLM did not return valid JSON:", content);
+      return new Response(
+        JSON.stringify({
+          error: "LLM did not return valid JSON",
+          raw: content
+        }),
+        { status: 502, headers: corsHeaders }
+      );
+    }
+
+    return new Response(JSON.stringify(parsed), {
       status: 200,
+      headers: corsHeaders
     });
-  } catch (error) {
-    console.error("OpenAI request failed:", error);
-    return new Response(JSON.stringify({ error: "OpenAI request failed", details: error.message }), {
-      headers: corsHeaders,
-      status: 502,
-    });
+  } catch (e) {
+    console.error("[gift-helper] LLM request failed with exception:", String(e));
+    return new Response(
+      JSON.stringify({ error: "LLM request failed", details: String(e) }),
+      { status: 502, headers: corsHeaders }
+    );
   }
 });
