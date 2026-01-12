@@ -5,14 +5,11 @@ import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GiftAssistantFormData, GiftAssistantSchema } from "./GiftAssistantSchema";
 
+// Updated GiftItem interface to match OpenAI's output
 interface GiftItem {
-  id: string;
   title: string;
-  price: number;
-  currency: string;
-  image: string;
-  url: string;
-  tags: string[];
+  description: string;
+  approx_price: number;
   reason: string;
 }
 
@@ -37,7 +34,7 @@ interface GiftAssistantContextType {
 const GiftAssistantContext = createContext<GiftAssistantContextType | undefined>(undefined);
 
 // Helper to map UI values to API canonical values
-const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) => {
+const mapFormDataToApiPayload = (data: GiftAssistantFormData) => {
   const budgetMap: { [key: string]: { min: number; max: number } } = {
     "Under 10": { min: 0, max: 9.99 },
     "10-25": { min: 10, max: 25 },
@@ -119,8 +116,8 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) =
     "Prefer not to say": "not_specified",
   };
 
-  const selectedBudget = budgetMap[data.budget] || { min: 0, max: 999999 };
-  const selectedOccasion = data.occasion && data.occasion.length > 0 ? occasionMap[data.occasion[0]] || "other" : null; // Assuming single occasion for API for simplicity
+  const selectedBudgetRange = budgetMap[data.budget] || { min: 0, max: 999999 };
+  const selectedOccasion = data.occasion && data.occasion.length > 0 ? occasionMap[data.occasion[0]] || "other" : null;
 
   return {
     recipient: {
@@ -132,15 +129,14 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) =
     personality: data.personality?.map(p => personalityMap[p] || p.toLowerCase().replace(/\s/g, '_')),
     interests: data.interests?.map(i => interestsMap[i] || i.toLowerCase().replace(/\s/g, '_')),
     free_description: data.interestFreeText || null,
-    budget: selectedBudget,
+    budget: selectedBudgetRange,
     gift_style: giftStyleMap[data.giftStyle] || "safe_classic",
-    risk_tolerance: data.riskTolerance ? "medium" : "low", // Simple mapping
-    variant: variant, // For "Show more ideas"
+    risk_tolerance: data.riskTolerance ? "medium" : "low",
   };
 };
 
-export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => {
-  const totalFormSteps = 4; // "Who is it for?", "What are they like?", "Budget & type of gift", "Review & confirm"
+export const GiftAssistantProvider = ({ children }: { ReactNode }) => {
+  const totalFormSteps = 4;
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -148,7 +144,6 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   const [recommendations, setRecommendations] = useState<GiftItem[]>([]);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [apiCallVariant, setApiCallVariant] = useState(1); // For "Show more ideas"
 
   const formData = useForm<GiftAssistantFormData>({
     resolver: zodResolver(GiftAssistantSchema),
@@ -168,7 +163,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   });
 
   const goToNextStep = () => {
-    if (currentStep < totalFormSteps + 1) { // Max step is totalFormSteps + 1 (for recommendations)
+    if (currentStep < totalFormSteps + 1) {
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -180,7 +175,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   };
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= totalFormSteps + 1) { // Max step is totalFormSteps + 1 (for recommendations)
+    if (step >= 1 && step <= totalFormSteps + 1) {
       setCurrentStep(step);
     }
   };
@@ -188,17 +183,16 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   const fetchRecommendations = useCallback(async (currentFormData: GiftAssistantFormData, isRefetch: boolean = false) => {
     if (isRefetch) {
       setIsLoadingMore(true);
-      setApiCallVariant(prev => prev + 1);
     } else {
       setIsSubmitting(true);
-      setApiCallVariant(1); // Reset variant for initial submission
     }
     setError(false);
     setErrorMessage(null);
 
     try {
-      const payload = mapFormDataToApiPayload(currentFormData, isRefetch ? apiCallVariant + 1 : 1);
-      const response = await fetch(`/api/gift-helper${isRefetch ? `?variant=${apiCallVariant + 1}` : ''}`, {
+      const payload = mapFormDataToApiPayload(currentFormData);
+      // Call the Supabase Edge Function
+      const response = await fetch("/functions/v1/gift-helper", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -214,7 +208,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
         if (isJson) {
           try {
             const errorData = await response.json();
-            errorDetail = errorData.message || errorDetail;
+            errorDetail = errorData.details || errorData.error || errorDetail;
           } catch (jsonParseError) {
             errorDetail = await response.text() || errorDetail;
           }
@@ -226,7 +220,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
 
       if (isJson) {
         const data = await response.json();
-        setGiftExplanation(data.gift_explanation);
+        setGiftExplanation("Here are some gift ideas based on your preferences."); // Default explanation
         setRecommendations(data.items);
         if (!isRefetch) {
           setCurrentStep(totalFormSteps + 1); // Move to recommendations step
@@ -245,7 +239,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
       setIsSubmitting(false);
       setIsLoadingMore(false);
     }
-  }, [apiCallVariant, totalFormSteps]);
+  }, [totalFormSteps]);
 
   const submitForm = async () => {
     await fetchRecommendations(formData.getValues(), false);
@@ -262,7 +256,6 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
     setRecommendations([]);
     setError(false);
     setErrorMessage(null);
-    setApiCallVariant(1);
   };
 
   return (

@@ -33,7 +33,7 @@ const StepRecommendations = () => {
 
       <div className="flex justify-center mb-4">
         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-          Powered by eBay AI
+          Powered by OpenAI
         </Badge>
       </div>
 
@@ -43,26 +43,18 @@ const StepRecommendations = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recommendations.map((product) => (
-            <div key={product.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col">
-              <img src={product.image} alt={product.title} className="w-full h-32 object-cover mb-3 rounded" />
+          {recommendations.map((product, index) => (
+            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col">
+              {/* OpenAI currently returns text-based suggestions, no images/URLs directly */}
               <h3 className="font-semibold text-lg mb-1">{product.title}</h3>
               <p className="text-blue-600 dark:text-blue-400 font-bold mb-2">
-                {product.currency} {product.price.toFixed(2)}
+                €{product.approx_price.toFixed(2)}
               </p>
-              <div className="flex flex-wrap gap-1 mb-2">
-                {product.tags.map((tag, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 flex-grow mb-3">{product.reason}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 flex-grow mb-3">{product.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Why it fits: {product.reason}</p>
               <div className="flex items-center justify-between mt-auto">
-                <Button variant="outline" size="sm" className="flex-grow mr-2" asChild>
-                  <a href={product.url} target="_blank" rel="noopener noreferrer">
-                    View on eBay
-                  </a>
+                <Button variant="outline" size="sm" className="flex-grow mr-2" disabled>
+                  View on eBay (Coming Soon)
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => handleFeedback(product.title, true)} aria-label="Good match">
                   <ThumbsUp className="h-4 w-4" />
