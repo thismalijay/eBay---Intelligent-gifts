@@ -112,6 +112,13 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) =
     "Home & decor": "home_decor",
   };
 
+  const genderMap: { [key: string]: string } = {
+    "Male": "male",
+    "Female": "female",
+    "Non-binary": "non_binary",
+    "Prefer not to say": "not_specified",
+  };
+
   const selectedBudget = budgetMap[data.budget] || { min: 0, max: 999999 };
   const selectedOccasion = data.occasion && data.occasion.length > 0 ? occasionMap[data.occasion[0]] || "other" : null; // Assuming single occasion for API for simplicity
 
@@ -119,6 +126,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) =
     recipient: {
       relationship: relationshipMap[data.relationship] || "other",
       age_range: ageRangeMap[data.ageRange] || "unknown",
+      gender: data.gender ? genderMap[data.gender] || "not_specified" : null, // Ajout du champ gender
     },
     occasion: selectedOccasion,
     personality: data.personality?.map(p => personalityMap[p] || p.toLowerCase().replace(/\s/g, '_')),
@@ -148,6 +156,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
       relationship: "",
       relationshipText: "",
       ageRange: "",
+      gender: "", // Initialisation du nouveau champ gender
       occasion: [],
       personality: [],
       interests: [],

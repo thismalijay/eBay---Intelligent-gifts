@@ -12,6 +12,7 @@ const StepReview = () => {
   const relationship = watch("relationship");
   const relationshipText = watch("relationshipText");
   const ageRange = watch("ageRange");
+  const gender = watch("gender"); // Nouveau champ
   const occasion = watch("occasion");
   const personality = watch("personality");
   const interests = watch("interests");
@@ -25,6 +26,7 @@ const StepReview = () => {
   const displayPersonality = personality && personality.length > 0 ? personality.join(", ") : "Not specified";
   const displayInterests = interests && interests.length > 0 ? interests.join(", ") : "No specific interests";
   const displayInterestFreeText = interestFreeText ? `; "${interestFreeText}"` : "";
+  const displayGender = gender && gender !== "Prefer not to say" ? `, ${gender}` : ""; // Afficher le sexe si spécifié
 
   return (
     <div className="p-4 space-y-6">
@@ -40,7 +42,7 @@ const StepReview = () => {
             <div>
               <p className="font-medium">For:</p>
               <p className="text-gray-700 dark:text-gray-300">
-                {displayRelationship}, {ageRange}
+                {displayRelationship}, {ageRange}{displayGender}
               </p>
             </div>
             <Button variant="link" onClick={() => goToStep(1)}>Edit</Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GiftAssistantProvider, useGiftAssistant } from "./gift-assistant/GiftAssistantContext";
@@ -35,6 +35,14 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
     recommendations,
   } = useGiftAssistant();
   const { trigger, getValues } = formData;
+
+  const scrollableContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollableContentRef.current) {
+      scrollableContentRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
 
   const handleNext = async () => {
     let isValid = false;
@@ -120,7 +128,7 @@ const GiftAssistantModalContent = ({ onClose }: { onClose: () => void }) => {
         </div>
       )}
 
-      <div className="flex-grow overflow-y-auto">
+      <div ref={scrollableContentRef} className="flex-grow overflow-y-auto">
         {isSubmitting ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-4" />

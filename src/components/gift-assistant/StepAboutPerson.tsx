@@ -35,11 +35,19 @@ const occasionOptions = [
   "Birthday", "Christmas / Holidays", "Anniversary", "Thank you", "Just because", "Other"
 ];
 
+const genderOptions = [
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+  { value: "Non-binary", label: "Non-binary" },
+  { value: "Prefer not to say", label: "Prefer not to say" },
+];
+
 const StepAboutPerson = () => {
   const { formData } = useGiftAssistant();
   const { register, watch, setValue, formState: { errors } } = formData;
   const selectedRelationship = watch("relationship");
   const selectedOccasions = watch("occasion") || [];
+  const selectedGender = watch("gender");
 
   const handleOccasionToggle = (occasion: string) => {
     const currentOccasions = new Set(selectedOccasions);
@@ -132,6 +140,35 @@ const StepAboutPerson = () => {
         {errors.ageRange && (
           <p className="text-sm text-destructive mt-1">{errors.ageRange.message}</p>
         )}
+      </div>
+
+      {/* Gender */}
+      <div>
+        <Label className="mb-2 block">Gender (optional)</Label>
+        <RadioGroup
+          onValueChange={(value) => setValue("gender", value)}
+          value={selectedGender}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+        >
+          {genderOptions.map((gender) => (
+            <Label
+              key={gender.value}
+              htmlFor={gender.value}
+              className={cn(
+                "flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                selectedGender === gender.value && "border-primary ring-2 ring-primary"
+              )}
+            >
+              <RadioGroupItem
+                value={gender.value}
+                id={gender.value}
+                className="sr-only"
+                {...register("gender")}
+              />
+              <span className="text-sm font-medium">{gender.label}</span>
+            </Label>
+          ))}
+        </RadioGroup>
       </div>
 
       {/* Occasion */}

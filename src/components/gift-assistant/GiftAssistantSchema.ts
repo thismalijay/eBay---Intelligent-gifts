@@ -4,6 +4,7 @@ export const GiftAssistantSchema = z.object({
   relationship: z.string().min(1, "Please choose a relationship to continue."),
   relationshipText: z.string().optional(), // For 'Other' relationship
   ageRange: z.string().min(1, "Please select an age range."),
+  gender: z.string().optional(), // Nouveau champ pour le sexe
   occasion: z.array(z.string()).optional(), // Multi-select, optional
   personality: z.array(z.string()).optional(), // Multi-select, optional
   interests: z.array(z.string()).optional(), // Multi-select, optional
