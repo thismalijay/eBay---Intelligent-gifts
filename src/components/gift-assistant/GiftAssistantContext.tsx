@@ -126,7 +126,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) =
     recipient: {
       relationship: relationshipMap[data.relationship] || "other",
       age_range: ageRangeMap[data.ageRange] || "unknown",
-      gender: data.gender ? genderMap[data.gender] || "not_specified" : null, // Ajout du champ gender
+      gender: data.gender ? genderMap[data.gender] || "not_specified" : null,
     },
     occasion: selectedOccasion,
     personality: data.personality?.map(p => personalityMap[p] || p.toLowerCase().replace(/\s/g, '_')),
@@ -140,7 +140,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData, variant: number) =
 };
 
 export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => {
-  const totalSteps = 4; // "Who is it for?", "What are they like?", "Budget & type of gift", "Review & confirm"
+  const totalFormSteps = 4; // "Who is it for?", "What are they like?", "Budget & type of gift", "Review & confirm"
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -156,7 +156,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
       relationship: "",
       relationshipText: "",
       ageRange: "",
-      gender: "", // Initialisation du nouveau champ gender
+      gender: "",
       occasion: [],
       personality: [],
       interests: [],
@@ -168,7 +168,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   });
 
   const goToNextStep = () => {
-    if (currentStep < totalSteps + 1) {
+    if (currentStep < totalFormSteps + 1) { // Max step is totalFormSteps + 1 (for recommendations)
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -180,7 +180,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
   };
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= totalSteps + 1) {
+    if (step >= 1 && step <= totalFormSteps + 1) { // Max step is totalFormSteps + 1 (for recommendations)
       setCurrentStep(step);
     }
   };
@@ -216,7 +216,6 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
             const errorData = await response.json();
             errorDetail = errorData.message || errorDetail;
           } catch (jsonParseError) {
-            // Fallback if JSON parsing fails even with application/json header
             errorDetail = await response.text() || errorDetail;
           }
         } else {
@@ -225,16 +224,14 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
         throw new Error(errorDetail);
       }
 
-      // If response is OK, and it's supposed to be JSON
       if (isJson) {
         const data = await response.json();
         setGiftExplanation(data.gift_explanation);
         setRecommendations(data.items);
         if (!isRefetch) {
-          setCurrentStep(totalSteps + 1);
+          setCurrentStep(totalFormSteps + 1); // Move to recommendations step
         }
       } else {
-        // If response is OK but not JSON, it's an unexpected scenario for this API
         throw new Error("Received an unexpected non-JSON response from the server.");
       }
 
@@ -242,15 +239,13 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
       console.error("API Error:", err);
       setError(true);
       setErrorMessage(err.message || "We couldn't fetch gift ideas right now. Please try again in a moment.");
-      if (!isRefetch) {
-        // If initial fetch failed, go to an error state, not recommendations
-        setCurrentStep(totalSteps + 2); // Assuming totalSteps + 2 is an error step or handled by modal
-      }
+      // On error, stay on the current step (review step if it was an initial submit)
+      // The modal's `showApiErrorState` will handle displaying the error message.
     } finally {
       setIsSubmitting(false);
       setIsLoadingMore(false);
     }
-  }, [apiCallVariant, totalSteps]);
+  }, [apiCallVariant, totalFormSteps]);
 
   const submitForm = async () => {
     await fetchRecommendations(formData.getValues(), false);
