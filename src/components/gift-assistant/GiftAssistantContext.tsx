@@ -13,6 +13,25 @@ interface GiftItem {
   reason: string;
 }
 
+// Define the expected input structure for the Edge Function
+type GiftProfilePayload = {
+  recipient: {
+    relationship: string;
+    age_range: string;
+    gender?: string | null; // Added gender as it's in the form data and backend schema
+  };
+  occasion?: string | null;
+  personality?: string[];
+  interests?: string[];
+  free_description?: string | null;
+  budget: {
+    min: number;
+    max: number;
+  };
+  gift_style: string;
+  risk_tolerance: string;
+};
+
 interface GiftAssistantContextType {
   currentStep: number;
   goToNextStep: () => void;
@@ -34,7 +53,7 @@ interface GiftAssistantContextType {
 const GiftAssistantContext = createContext<GiftAssistantContextType | undefined>(undefined);
 
 // Helper to map UI values to API canonical values
-const mapFormDataToApiPayload = (data: GiftAssistantFormData) => {
+const mapFormDataToApiPayload = (data: GiftAssistantFormData): GiftProfilePayload => {
   const budgetMap: { [key: string]: { min: number; max: number } } = {
     "Under 10": { min: 0, max: 9.99 },
     "10-25": { min: 10, max: 25 },
@@ -50,15 +69,6 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData) => {
     "Child / Teen": "child_teen",
     "Colleague / Boss": "colleague",
     "Someone I don’t know well": "someone_i_dont_know_well",
-    "Other": "other",
-  };
-
-  const occasionMap: { [key: string]: string } = {
-    "Birthday": "birthday",
-    "Christmas / Holidays": "christmas",
-    "Anniversary": "anniversary",
-    "Thank you": "thank_you",
-    "Just because": "just_because",
     "Other": "other",
   };
 
@@ -123,7 +133,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData) => {
     recipient: {
       relationship: relationshipMap[data.relationship] || "other",
       age_range: ageRangeMap[data.ageRange] || "unknown",
-      gender: data.gender ? genderMap[data.gender] || "not_specified" : null,
+      gender: data.gender ? genderMap[data.gender] : null, // Map gender, allow null
     },
     occasion: selectedOccasion,
     personality: data.personality?.map(p => personalityMap[p] || p.toLowerCase().replace(/\s/g, '_')),
@@ -131,7 +141,7 @@ const mapFormDataToApiPayload = (data: GiftAssistantFormData) => {
     free_description: data.interestFreeText || null,
     budget: selectedBudgetRange,
     gift_style: giftStyleMap[data.giftStyle] || "safe_classic",
-    risk_tolerance: data.riskTolerance ? "medium" : "low",
+    risk_tolerance: data.riskTolerance ? "medium" : "low", // Mapping boolean to string
   };
 };
 
@@ -191,23 +201,27 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
 
     try {
       const payload = mapFormDataToApiPayload(currentFormData);
-      // Call the Supabase Edge Function
-      const response = await fetch("/functions/v1/gift-helper", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      // Call the Supabase Edge Function with the absolute URL
+      const response = await fetch(
+        "https://teewshfludknvzvhrntq.functions.supabase.co/gift-helper",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const contentType = response.headers.get("content-type");
       const isJson = contentType && contentType.includes("application/json");
 
       if (!response.ok) {
         let errorDetail = "Failed to fetch gift recommendations.";
+        let errorData: any = null;
         if (isJson) {
           try {
-            const errorData = await response.json();
+            errorData = await response.json();
             errorDetail = errorData.details || errorData.error || errorDetail;
           } catch (jsonParseError) {
             errorDetail = await response.text() || errorDetail;
@@ -215,6 +229,7 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
         } else {
           errorDetail = await response.text() || errorDetail;
         }
+        console.error("gift-helper error", errorData || errorDetail); // Log the error
         throw new Error(errorDetail);
       }
 
@@ -230,11 +245,9 @@ export const GiftAssistantProvider = ({ children }: { children: ReactNode }) => 
       }
 
     } catch (err: any) {
-      console.error("API Error:", err);
+      console.error("API Error:", err); // Log client-side errors
       setError(true);
       setErrorMessage(err.message || "We couldn't fetch gift ideas right now. Please try again in a moment.");
-      // On error, stay on the current step (review step if it was an initial submit)
-      // The modal's `showApiErrorState` will handle displaying the error message.
     } finally {
       setIsSubmitting(false);
       setIsLoadingMore(false);
